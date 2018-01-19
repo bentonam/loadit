@@ -1,34 +1,36 @@
 // imports
-const couchbase = require('couchbase')
 const randomBytes = require('random-bytes')
 const { Readable, Writable } = require('stream')
 const { getProducerId, counter } = require('./utils')
+const db = require('./db')
 
-// connect to the cluster
-const cluster = new couchbase.Cluster('couchbase://localhost');
-const bucket = cluster.openBucket('testing');
+
+let min_document_size = 100
+let max_document_size = 1000
 
 // this the task is in it's own forked process, get the ipc channel to send messages back to the parent
 const channel = process.relieve.ipc
 
 // Called when the task is started by the Worker
 const start = () => {
+  const options = JSON.parse(process.argv[3].replace(/^"|"$|\\/g, ''))
+  // create all of the necessary connections
+  db.connect(options)
   // attach to an event so the start of the producing can be delayed
-  channel.once('start_producing', () => {
+  channel.once('start_producing', ({ minDocumentSize, maxDocumentSize }) => {
+    min_document_size = minDocumentSize
+    max_document_size = maxDocumentSize
     reader.pipe(writer)
   })
 }
 
 // define a stream reader
-const MIN = 1024
-const MAX = 3072
-
 const reader = new Readable({
   // whenever data is requested
-  read(size) {
+  read() {
     // generator a random byte string
-    const random_size = Math.floor(Math.random() * MAX) + MIN;
-    randomBytes(Math.floor(Math.random() * MAX) + MIN)
+    const random_size = Math.floor(Math.random() * max_document_size) + min_document_size
+    randomBytes(random_size)
       .then((result) => {
         this.push(result)
         this.iterator++
@@ -46,10 +48,10 @@ const writer = new Writable({
     const chance = Math.random() < 0.0025 // use ~0.25% chance of issuing an append
     const id = getProducerId(chance)
     if (chance) {
-      bucket.append(id, chunk, (err) => {
+      db.getBucket().append(id, chunk, (err) => {
         // if there was an error and it's error code 18 which is a missing document, perform an insert
         if (err && err.code === 18) {
-          bucket.insert(id, chunk, (ins_err) => {
+          db.getBucket().insert(id, chunk, (ins_err) => {
             channel.send('message', {
               from: 'producer',
               kilobytes: chunk.toString().length / 1024,
@@ -69,7 +71,7 @@ const writer = new Writable({
         }
       })
     } else {
-      bucket.upsert(id, chunk, (err) => {
+      db.getBucket().upsert(id, chunk, (err) => {
         channel.send('message', {
           from: 'producer',
           kilobytes: chunk.toString().length / 1024,
@@ -91,8 +93,6 @@ writer.on('error', (err) => {
     reader.pipe(writer); // re-pipe the stream
   }, PAUSE_COUNTER * 200)
 })
-
-
 
 module.exports = {
   start
