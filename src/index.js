@@ -28,8 +28,9 @@ exports.default = function loadit({
   maxDocumentSize,
   writerDelay,
   readerDelay,
+  connectionsPerThread,
   missPercent,
-  connectionsPerThread
+  appendPercent
 }) {
   const calculated_reader_threads = readerThreads || Math.ceil(AVAILABLE_CPUS * (readerPercent / 100))
   const calculated_producer_threads = producerThreads || Math.ceil(AVAILABLE_CPUS * (producerPercent / 100))
@@ -110,6 +111,8 @@ exports.default = function loadit({
     worker.send('start_producing', {
       minDocumentSize,
       maxDocumentSize,
+      producerThreshold,
+      appendPercent,
     })
   }, writerDelay * 1000)
 
@@ -123,6 +126,7 @@ exports.default = function loadit({
     worker.send('start_reading', {
       producer_process_ids,
       missPercent,
+      readerThreshold,
     })
   }, readerDelay * 1000)
 

@@ -7,6 +7,8 @@ const db = require('./db')
 
 let min_document_size = 100
 let max_document_size = 1000
+let append_percent = 0.25
+let producer_threshold
 
 // this the task is in it's own forked process, get the ipc channel to send messages back to the parent
 const channel = process.relieve.ipc
@@ -17,9 +19,16 @@ const start = () => {
   // create all of the necessary connections
   db.connect(options)
   // attach to an event so the start of the producing can be delayed
-  channel.once('start_producing', ({ minDocumentSize, maxDocumentSize }) => {
+  channel.once('start_producing', ({
+    minDocumentSize,
+    maxDocumentSize,
+    producerThreshold,
+    appendPercent,
+  }) => {
     min_document_size = minDocumentSize
     max_document_size = maxDocumentSize
+    producer_threshold = producerThreshold
+    append_percent = appendPercent
     reader.pipe(writer)
   })
 }
@@ -34,7 +43,7 @@ const reader = new Readable({
       .then((result) => {
         this.push(result)
         this.iterator++
-        if (this.iterator > 100000) {
+        if (producer_threshold && this.iterator > producer_threshold) {
           this.push(null)
         }
       })
@@ -45,7 +54,7 @@ reader.iterator = 0;
 // define stream writer
 const writer = new Writable({
   write(chunk, encoding, callback) {
-    const chance = Math.random() < 0.0025 // use ~0.25% chance of issuing an append
+    const chance = append_percent ? Math.random() < (append_percent / 100) : 0 // use ~0.25% chance of issuing an append
     const id = getProducerId(chance)
     if (chance) {
       db.getBucket().append(id, chunk, (err) => {

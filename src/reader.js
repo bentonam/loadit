@@ -10,6 +10,7 @@ const channel = process.relieve.ipc
 // Called when the task is started by the Worker
 let available_producer_process_ids = []
 let miss_percent = 0.15
+let reader_threshold
 
 // when the task starts
 const start = () => {
@@ -17,11 +18,13 @@ const start = () => {
   // create all of the necessary connections
   db.connect(options)
   // we aren't going to start attempting to read right away, attach an event so we can be told to start
-  channel.once('start_reading', ({ producer_process_ids, missPercent }) => {
+  channel.once('start_reading', ({ producer_process_ids, missPercent, readerThreshold }) => {
     // set the available process ids from the producers
     available_producer_process_ids = producer_process_ids
     // set the miss percentage
     miss_percent = missPercent
+    // set the reader threshold
+    reader_threshold = readerThreshold
     // pipe the streams
     reader.pipe(writer)
   })
@@ -32,6 +35,9 @@ const reader = new Readable({
   // whenever data is requested
   read(size) {
     this.push(this.iterator++)
+    if (reader_threshold && this.iterator >= reader_threshold) {
+      this.push(null)
+    }
   },
   objectMode: true,
 });
@@ -40,7 +46,7 @@ reader.iterator = 0;
 // define stream writer
 const writer = new Writable({
   write(chunk, encoding, callback) {
-    const chance = Math.random() < (miss_percent / 100) // use ~0.10% chance of causing a miss
+    const chance = miss_percent ? Math.random() < (miss_percent / 100) : 0 // use ~0.10% chance of causing a miss
     // we don't really have to much of a chance of generating matching documents, as we're reliant
     // on the producer processes to get something for us to retrieve so we're going to try our best
     const id = getReaderId(

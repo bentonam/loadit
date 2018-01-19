@@ -92,16 +92,22 @@ commander
       2
     )
     .option(
+      '--connections-per-thread <n>',
+      `The number of connnections each thread should use`,
+      (val) => parseInt(val),
+      1
+    )
+    .option(
       '--miss-percent <n>',
       `Percentage of a random miss happening (0.0 - 100)`,
       (val) => parseFloat(val),
       0.10
     )
     .option(
-      '--connections-per-thread <n>',
-      `The number of connnections each thread should use`,
-      (val) => parseInt(val),
-      1
+      '--append-percent <n>',
+      `Percentage of a random append instead of upsert (0.0 - 100)`,
+      (val) => parseFloat(val),
+      0.25
     )
     .parse(process.argv)
 
