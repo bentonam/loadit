@@ -1,0 +1,33 @@
+{
+  "name": "load-generator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "loadit": "bin/loadit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bentonam/load-generator.git"
+  },
+  "author": "Aaron Benton",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bentonam/load-generator/issues"
+  },
+  "engines": {
+    "node": ">=6"
+  },
+  "homepage": "https://github.com/bentonam/load-generator#readme",
+  "dependencies": {
+    "commander": "2.13.0",
+    "couchbase": "2.4.3",
+    "ora": "1.3.0",
+    "random-bytes": "1.0.0",
+    "relieve": "2.2.1",
+    "uuid": "3.2.1"
+  }
+}
