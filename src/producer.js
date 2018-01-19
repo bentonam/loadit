@@ -2,7 +2,7 @@
 const couchbase = require('couchbase')
 const randomBytes = require('random-bytes')
 const { Readable, Writable } = require('stream')
-const uuid = require('uuid/v4')
+const { getProducerId, counter } = require('./utils')
 
 // connect to the cluster
 const cluster = new couchbase.Cluster('couchbase://localhost');
@@ -13,7 +13,10 @@ const channel = process.relieve.ipc
 
 // Called when the task is started by the Worker
 const start = () => {
-  reader.pipe(writer)
+  // attach to an event so the start of the producing can be delayed
+  channel.once('start_producing', () => {
+    reader.pipe(writer)
+  })
 }
 
 // define a stream reader
@@ -40,14 +43,15 @@ reader.iterator = 0;
 // define stream writer
 const writer = new Writable({
   write(chunk, encoding, callback) {
-    const id = `a_${reader.iterator}`;
-    // use a 0.25% chance of of issuing an append
-    if (Math.random() < 0.0025) {
+    const chance = Math.random() < 0.0025 // use ~0.25% chance of issuing an append
+    const id = getProducerId(chance)
+    if (chance) {
       bucket.append(id, chunk, (err) => {
         // if there was an error and it's error code 18 which is a missing document, perform an insert
         if (err && err.code === 18) {
           bucket.insert(id, chunk, (ins_err) => {
             channel.send('message', {
+              from: 'producer',
               kilobytes: chunk.toString().length / 1024,
               write_op: 1,
               append_op: 0
@@ -56,6 +60,7 @@ const writer = new Writable({
           })
         } else {
           channel.send('message', {
+            from: 'producer',
             kilobytes: chunk.toString().length / 1024,
             write_op: 0,
             append_op: 1
@@ -66,6 +71,7 @@ const writer = new Writable({
     } else {
       bucket.upsert(id, chunk, (err) => {
         channel.send('message', {
+          from: 'producer',
           kilobytes: chunk.toString().length / 1024,
           write_op: 1,
           append_op: 0
@@ -85,6 +91,7 @@ writer.on('error', (err) => {
     reader.pipe(writer); // re-pipe the stream
   }, PAUSE_COUNTER * 200)
 })
+
 
 
 module.exports = {
