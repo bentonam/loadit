@@ -11,6 +11,7 @@ const channel = process.relieve.ipc
 let available_producer_process_ids = []
 let miss_percent = 0.15
 let reader_threshold
+let reader_high_water_mark = 16
 
 // when the task starts
 const start = () => {
@@ -18,13 +19,20 @@ const start = () => {
   // create all of the necessary connections
   db.connect(options)
   // we aren't going to start attempting to read right away, attach an event so we can be told to start
-  channel.once('start_reading', ({ producer_process_ids, missPercent, readerThreshold }) => {
+  channel.once('start_reading', ({
+    producer_process_ids,
+    missPercent,
+    readerThreshold,
+    readerHighWaterMark
+  }) => {
     // set the available process ids from the producers
     available_producer_process_ids = producer_process_ids
     // set the miss percentage
     miss_percent = missPercent
     // set the reader threshold
     reader_threshold = readerThreshold
+    // set the high water mark
+    reader_high_water_mark = readerHighWaterMark
     // pipe the streams
     reader.pipe(writer)
   })
@@ -40,6 +48,7 @@ const reader = new Readable({
     }
   },
   objectMode: true,
+  highWaterMark: reader_high_water_mark,
 });
 reader.iterator = 0;
 

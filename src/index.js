@@ -30,7 +30,9 @@ exports.default = function loadit({
   readerDelay,
   connectionsPerThread,
   missPercent,
-  appendPercent
+  appendPercent,
+  producerHighWaterMark,
+  readerHighWaterMark
 }) {
   const calculated_reader_threads = readerThreads || Math.ceil(AVAILABLE_CPUS * (readerPercent / 100))
   const calculated_producer_threads = producerThreads || Math.ceil(AVAILABLE_CPUS * (producerPercent / 100))
@@ -63,7 +65,7 @@ exports.default = function loadit({
   for (let i = 0; i < calculated_producer_threads; i++) {
     const task = new ScriptTask(`${__dirname}/producer.js`)
     task.name = `producer-${i}`
-    task.arguments = [JSON.stringify({cluster, bucket, username, password, connectionsPerThread })]
+    task.arguments = [JSON.stringify({cluster, bucket, username, password, connectionsPerThread, producerHighWaterMark })]
     task.on('message', (msg) => {
       updateProducerStats(msg)
       // if we're supposed to stop after a certain number of writes
@@ -81,7 +83,7 @@ exports.default = function loadit({
   for (let i = 0; i < calculated_reader_threads; i++) {
     const task = new ScriptTask(`${__dirname}/reader.js`)
     task.name = `reader-${i}`
-    task.arguments = [JSON.stringify({cluster, bucket, username, password, connectionsPerThread })]
+    task.arguments = [JSON.stringify({cluster, bucket, username, password, connectionsPerThread, readerHighWaterMark })]
     task.on('message', (msg) => {
       updateReaderStats(msg)
       // if we're supposed to stop after a certain number of writes

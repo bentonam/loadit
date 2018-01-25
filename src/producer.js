@@ -9,6 +9,7 @@ let min_document_size = 100
 let max_document_size = 1000
 let append_percent = 0.25
 let producer_threshold
+let producer_high_water_mark = 16384
 
 // this the task is in it's own forked process, get the ipc channel to send messages back to the parent
 const channel = process.relieve.ipc
@@ -24,11 +25,13 @@ const start = () => {
     maxDocumentSize,
     producerThreshold,
     appendPercent,
+    producerHighWaterMark,
   }) => {
     min_document_size = minDocumentSize
     max_document_size = maxDocumentSize
     producer_threshold = producerThreshold
     append_percent = appendPercent
+    producer_high_water_mark = producerHighWaterMark * 1024 // convert to bytes
     reader.pipe(writer)
   })
 }
@@ -48,6 +51,7 @@ const reader = new Readable({
         }
       })
   },
+  highWaterMark: producer_high_water_mark,
 });
 reader.iterator = 0;
 

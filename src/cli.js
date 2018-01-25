@@ -109,6 +109,18 @@ commander
       (val) => parseFloat(val),
       0.25
     )
+    .option(
+      '--producer-high-water-mark <n>',
+      `The high water mark for the producer in KB`,
+      (val) => parseFloat(val),
+      16
+    )
+    .option(
+      '--reader-high-water-mark <n>',
+      `The high water mark for the reader in KB`,
+      (val) => parseFloat(val),
+      16
+    )
     .parse(process.argv)
 
 exports.default = () => {
