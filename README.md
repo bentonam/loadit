@@ -6,7 +6,7 @@ This is a NodeJS cli loading testing tool for Couchbase. Use at your own risk, I
 ## Usage
 
 ```bash
-loadit --help                                                                            (master) 
+loadit --help                                                                            (master)
 
   Usage: loadit [options]
 
@@ -40,7 +40,7 @@ loadit --help                                                                   
     -h, --help                      output usage information
 ```
 
-Example: 
+Example:
 
 ```bash
 loadit --cluster localhost \
@@ -70,7 +70,7 @@ Reinitialize the shell
 . ~/.bashrc
 ```
 
-Install Node 6 
+Install Node 9
 
 ```bash
 nvm install 9
@@ -84,7 +84,7 @@ nvm alias default 9
 
 ### Installation
 
-Clone the repository 
+Clone the repository
 
 ```bash
 git clone https://github.com/bentonam/loadit.git
